@@ -2,21 +2,18 @@
 //  SPOTIFY CLONE — script.js
 // ═══════════════════════════════════════════
 
-// ─── STATE ────────────────────────────────
 let currentSong = new Audio();
 let songs = [];
 let currFolder = "";
 let currentArtist = "";
 
-// ✨ NEW: Track the exact index directly instead of relying on URL strings
+// Index-based tracking for rock-solid skip buttons
 let currentSongIndex = 0;
 
-// ─── NAVIGATION HISTORY ───────────────────
 let navHistory = [];
 let navIndex = -1;
 let isNavigating = false;
 
-// ─── ALBUM DATA ───────────────────────────
 const albums = [
   {
     folder: "songs/goat",
@@ -78,7 +75,6 @@ const albums = [
   },
 ];
 
-// ─── SONG MANIFEST ────────────────────────
 const songManifest = {
   "songs/goat": [
     "Jo Wada Kiya Woh Nibhana Padega.mp3",
@@ -146,7 +142,6 @@ const songManifest = {
   ],
 };
 
-// ─── SONG-SPECIFIC ARTISTS ────────────────
 const songArtists = {
   "Channa Mereya (PenduJatt.Com.Se)": "Arijit Singh",
   Elevated: "AP Dhillon",
@@ -155,7 +150,6 @@ const songArtists = {
   "Sajna Ve Sajna": "Satinder Sartaaj",
 };
 
-// ─── HELPERS ──────────────────────────────
 function cleanName(raw) {
   for (let i = 0; i < 3; i++) {
     try {
@@ -198,7 +192,6 @@ function getArtistForSong(songFilename) {
   return songArtists[name] || currentArtist;
 }
 
-// ─── FETCH SONGS + UPDATE LIBRARY ─────────
 async function getSongs(folder) {
   currFolder = folder;
   const albumMatch = albums.find((a) => a.folder === folder);
@@ -239,30 +232,26 @@ function renderLibrary() {
         <img class="invert" src="play.svg" alt="Play" width="16">
       </div>`;
 
-    // Render item inside Sidebar Drawer
     if (sidebarUl) {
       const liSidebar = document.createElement("li");
       liSidebar.innerHTML = itemContent;
-      liSidebar.addEventListener("click", () => playMusic(i)); // Pass the precise index!
+      liSidebar.addEventListener("click", () => playMusic(i));
       sidebarUl.appendChild(liSidebar);
     }
 
-    // Render item inside Main Screen View
     if (inlineUl) {
       const liInline = document.createElement("li");
       liInline.innerHTML = itemContent;
-      liInline.addEventListener("click", () => playMusic(i)); // Pass the precise index!
+      liInline.addEventListener("click", () => playMusic(i));
       inlineUl.appendChild(liInline);
     }
   });
 }
 
-// ─── PLAY MUSIC ───────────────────────────
-// ✨ Rewritten to accept strict array index, immune to URL encoding bugs
 function playMusic(index, pause = false) {
   if (index < 0 || index >= songs.length) return;
 
-  currentSongIndex = index; // Lock in our position in the array
+  currentSongIndex = index;
   const track = songs[currentSongIndex];
 
   currentSong.src = `${currFolder}/` + track;
@@ -276,7 +265,6 @@ function playMusic(index, pause = false) {
   document.querySelector(".songtime").textContent = "00:00 / 00:00";
 }
 
-// ─── VIEW SWITCHER ────────────────────────
 function showView(name) {
   document.getElementById("homeView").style.display =
     name === "home" ? "" : "none";
@@ -293,7 +281,6 @@ function showView(name) {
     .classList.toggle("nav-active", name === "search");
 }
 
-// ─── OPEN ALBUM ───────────────────────────
 async function openAlbum(idx, addToHistory = true) {
   const album = albums[idx];
   try {
@@ -318,7 +305,6 @@ async function openAlbum(idx, addToHistory = true) {
   if (addToHistory) pushNav({ type: "playlist", idx });
 }
 
-// ─── RENDER ALBUM CARDS ───────────────────
 function renderCards(container) {
   container.innerHTML = "";
   albums.forEach((album, idx) => {
@@ -341,7 +327,6 @@ function renderCards(container) {
   });
 }
 
-// ─── SEARCH ───────────────────────────────
 function runSearch(query) {
   const q = query.trim().toLowerCase();
   const results = document.getElementById("searchResults");
@@ -385,7 +370,6 @@ function runSearch(query) {
   });
 }
 
-// ─── HISTORY ──────────────────────────────
 function pushNav(entry) {
   if (isNavigating) return;
   navHistory = navHistory.slice(0, navIndex + 1);
@@ -431,9 +415,6 @@ async function applyNav(entry) {
   }
 }
 
-// ═══════════════════════════════════════════
-//  MAIN
-// ═══════════════════════════════════════════
 async function main() {
   renderCards(document.getElementById("homeView"));
   showView("home");
@@ -486,21 +467,18 @@ async function main() {
     }
   });
 
-  // ✨ Rewritten: Index-based Previous
   document.getElementById("previous").addEventListener("click", () => {
     if (currentSongIndex - 1 >= 0) {
       playMusic(currentSongIndex - 1);
     }
   });
 
-  // ✨ Rewritten: Index-based Next
   document.getElementById("next").addEventListener("click", () => {
     if (currentSongIndex + 1 < songs.length) {
       playMusic(currentSongIndex + 1);
     }
   });
 
-  // ✨ Rewritten: Index-based Auto-next
   currentSong.addEventListener("ended", () => {
     if (currentSongIndex + 1 < songs.length) {
       playMusic(currentSongIndex + 1);
@@ -508,25 +486,22 @@ async function main() {
   });
 
   document.querySelector(".seekbar").addEventListener("click", (e) => {
-    if (isNaN(currentSong.duration)) return; // Prevent breaking math if track not loaded
+    if (isNaN(currentSong.duration)) return;
     const pct = e.offsetX / e.target.getBoundingClientRect().width;
     document.querySelector(".circle").style.left = `${pct * 100}%`;
     currentSong.currentTime = pct * currentSong.duration;
   });
 
-  // ✨ FIXED: Added rock-solid NaN safety guards
   currentSong.addEventListener("timeupdate", () => {
     const curr = currentSong.currentTime;
     const dur = currentSong.duration;
 
-    // Only do the math if the browser has fully calculated the track's duration
     if (!isNaN(dur) && isFinite(dur) && dur > 0) {
       const pct = (curr / dur) * 100;
       document.querySelector(".circle").style.left = `${pct}%`;
       document.querySelector(".songtime").textContent =
         `${toMMSS(curr)} / ${toMMSS(dur)}`;
     } else {
-      // Fallback while the song is loading to prevent NaN:NaN
       document.querySelector(".songtime").textContent =
         `${toMMSS(curr)} / 00:00`;
     }
