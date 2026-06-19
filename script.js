@@ -8,6 +8,9 @@ let songs = [];
 let currFolder = "";
 let currentArtist = "";
 
+// ✨ NEW: Track the exact index directly instead of relying on URL strings
+let currentSongIndex = 0;
+
 // ─── NAVIGATION HISTORY ───────────────────
 let navHistory = [];
 let navIndex = -1;
@@ -76,9 +79,6 @@ const albums = [
 ];
 
 // ─── SONG MANIFEST ────────────────────────
-// GitHub Pages can't list folder contents like a local dev server can,
-// so each album's mp3 filenames must be listed here by hand.
-// Just the filename, exactly as it sits inside its songs/<folder>/ directory.
 const songManifest = {
   "songs/goat": [
     "Jo Wada Kiya Woh Nibhana Padega.mp3",
@@ -157,17 +157,15 @@ const songArtists = {
 
 // ─── HELPERS ──────────────────────────────
 function cleanName(raw) {
-  // Decode up to 3 times to handle double-encoded names
   for (let i = 0; i < 3; i++) {
     try {
       const decoded = decodeURIComponent(raw);
-      if (decoded === raw) break; // nothing left to decode
+      if (decoded === raw) break;
       raw = decoded;
     } catch (e) {
       break;
     }
   }
-  // Also manually replace anything that survived
   raw = raw
     .replaceAll("%20", " ")
     .replaceAll("%2C", ",")
@@ -189,7 +187,7 @@ function cleanName(raw) {
 }
 
 function toMMSS(seconds) {
-  if (isNaN(seconds) || seconds < 0) return "00:00";
+  if (isNaN(seconds) || seconds < 0 || !isFinite(seconds)) return "00:00";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -205,30 +203,32 @@ async function getSongs(folder) {
   currFolder = folder;
   const albumMatch = albums.find((a) => a.folder === folder);
   currentArtist = albumMatch ? albumMatch.artist : "Artist";
-
-  // Pull filenames from the hardcoded manifest instead of fetching a
-  // directory listing (GitHub Pages doesn't generate one).
   songs = songManifest[folder] || [];
-
   renderLibrary();
 }
 
 function renderLibrary() {
-  const ul = document.querySelector(".songList ul");
-  ul.innerHTML = "";
+  const sidebarUl = document.querySelector(".songList ul");
+  const inlineUl = document.querySelector("#playlistViewSongs ul");
+
+  if (sidebarUl) sidebarUl.innerHTML = "";
+  if (inlineUl) inlineUl.innerHTML = "";
 
   if (songs.length === 0) {
-    const li = document.createElement("li");
-    li.style.cssText = "opacity:0.6; cursor:default; justify-content:center;";
-    li.innerHTML = `<div class="info"><div>No songs added yet for this album</div></div>`;
-    ul.appendChild(li);
+    const createNoSongsLi = () => {
+      const li = document.createElement("li");
+      li.style.cssText = "opacity:0.6; cursor:default; justify-content:center;";
+      li.innerHTML = `<div class="info"><div>No songs added yet for this album</div></div>`;
+      return li;
+    };
+    if (sidebarUl) sidebarUl.appendChild(createNoSongsLi());
+    if (inlineUl) inlineUl.appendChild(createNoSongsLi());
     return;
   }
 
   songs.forEach((song, i) => {
     const artist = getArtistForSong(song);
-    const li = document.createElement("li");
-    li.innerHTML = `
+    const itemContent = `
       <img class="invert" src="music.svg" alt="Music" width="18">
       <div class="info">
         <div>${cleanName(song)}</div>
@@ -238,18 +238,40 @@ function renderLibrary() {
         <span>Play Now</span>
         <img class="invert" src="play.svg" alt="Play" width="16">
       </div>`;
-    li.addEventListener("click", () => playMusic(songs[i]));
-    ul.appendChild(li);
+
+    // Render item inside Sidebar Drawer
+    if (sidebarUl) {
+      const liSidebar = document.createElement("li");
+      liSidebar.innerHTML = itemContent;
+      liSidebar.addEventListener("click", () => playMusic(i)); // Pass the precise index!
+      sidebarUl.appendChild(liSidebar);
+    }
+
+    // Render item inside Main Screen View
+    if (inlineUl) {
+      const liInline = document.createElement("li");
+      liInline.innerHTML = itemContent;
+      liInline.addEventListener("click", () => playMusic(i)); // Pass the precise index!
+      inlineUl.appendChild(liInline);
+    }
   });
 }
 
 // ─── PLAY MUSIC ───────────────────────────
-function playMusic(track, pause = false) {
+// ✨ Rewritten to accept strict array index, immune to URL encoding bugs
+function playMusic(index, pause = false) {
+  if (index < 0 || index >= songs.length) return;
+
+  currentSongIndex = index; // Lock in our position in the array
+  const track = songs[currentSongIndex];
+
   currentSong.src = `${currFolder}/` + track;
+
   if (!pause) {
     currentSong.play();
     document.getElementById("play").src = "pause.svg";
   }
+
   document.querySelector(".songinfo").textContent = cleanName(track);
   document.querySelector(".songtime").textContent = "00:00 / 00:00";
 }
@@ -276,7 +298,7 @@ async function openAlbum(idx, addToHistory = true) {
   const album = albums[idx];
   try {
     await getSongs(album.folder);
-    if (songs.length > 0) playMusic(songs[0], true);
+    if (songs.length > 0) playMusic(0, true);
   } catch (e) {
     console.warn("Could not load album:", album.folder, e);
   }
@@ -288,7 +310,7 @@ async function openAlbum(idx, addToHistory = true) {
   };
   document.getElementById("pvTitle").textContent = album.title;
   document.getElementById("pvDesc").textContent = album.desc;
-  // pvArtist may not exist in all HTML versions — guard it
+
   const pvArtist = document.getElementById("pvArtist");
   if (pvArtist) pvArtist.textContent = album.artist;
 
@@ -413,32 +435,25 @@ async function applyNav(entry) {
 //  MAIN
 // ═══════════════════════════════════════════
 async function main() {
-  // Render cards into #homeView
   renderCards(document.getElementById("homeView"));
-
-  // Start on home
   showView("home");
   pushNav({ type: "home" });
 
-  // Try loading first album songs on startup
   try {
     await getSongs("songs/goat");
-    if (songs.length > 0) playMusic(songs[0], true);
+    if (songs.length > 0) playMusic(0, true);
   } catch (e) {
     console.warn("Could not load default album songs:", e);
   }
 
-  // ── Nav arrows ──
   document.getElementById("backBtn").addEventListener("click", goBack);
   document.getElementById("forwardBtn").addEventListener("click", goForward);
 
-  // ── Home ──
   document.getElementById("homeBtn").addEventListener("click", () => {
     showView("home");
     pushNav({ type: "home" });
   });
 
-  // ── Search ──
   document.getElementById("searchBtn").addEventListener("click", () => {
     showView("search");
     runSearch("");
@@ -450,7 +465,6 @@ async function main() {
     runSearch(e.target.value);
   });
 
-  // ── Logo ──
   const logoBtn = document.getElementById("logoBtn");
   if (logoBtn)
     logoBtn.addEventListener("click", () => {
@@ -458,12 +472,10 @@ async function main() {
       pushNav({ type: "home" });
     });
 
-  // ── Play All ──
   document.getElementById("pvPlayBtn").addEventListener("click", () => {
-    if (songs.length > 0) playMusic(songs[0]);
+    if (songs.length > 0) playMusic(0);
   });
 
-  // ── Play / Pause ──
   document.getElementById("play").addEventListener("click", () => {
     if (currentSong.paused) {
       currentSong.play();
@@ -474,47 +486,56 @@ async function main() {
     }
   });
 
-  // ── Previous ──
+  // ✨ Rewritten: Index-based Previous
   document.getElementById("previous").addEventListener("click", () => {
-    const i = songs.indexOf(currentSong.src.split("/").slice(-1)[0]);
-    if (i - 1 >= 0) playMusic(songs[i - 1]);
+    if (currentSongIndex - 1 >= 0) {
+      playMusic(currentSongIndex - 1);
+    }
   });
 
-  // ── Next ──
+  // ✨ Rewritten: Index-based Next
   document.getElementById("next").addEventListener("click", () => {
-    const i = songs.indexOf(currentSong.src.split("/").slice(-1)[0]);
-    if (i + 1 < songs.length) playMusic(songs[i + 1]);
+    if (currentSongIndex + 1 < songs.length) {
+      playMusic(currentSongIndex + 1);
+    }
   });
 
-  // ── Auto next ──
+  // ✨ Rewritten: Index-based Auto-next
   currentSong.addEventListener("ended", () => {
-    const i = songs.indexOf(currentSong.src.split("/").slice(-1)[0]);
-    if (i + 1 < songs.length) playMusic(songs[i + 1]);
+    if (currentSongIndex + 1 < songs.length) {
+      playMusic(currentSongIndex + 1);
+    }
   });
 
-  // ── Seekbar ──
   document.querySelector(".seekbar").addEventListener("click", (e) => {
+    if (isNaN(currentSong.duration)) return; // Prevent breaking math if track not loaded
     const pct = e.offsetX / e.target.getBoundingClientRect().width;
     document.querySelector(".circle").style.left = `${pct * 100}%`;
     currentSong.currentTime = pct * currentSong.duration;
   });
 
-  // ── Time update ──
+  // ✨ FIXED: Added rock-solid NaN safety guards
   currentSong.addEventListener("timeupdate", () => {
-    if (!isNaN(currentSong.duration)) {
-      const pct = (currentSong.currentTime / currentSong.duration) * 100;
+    const curr = currentSong.currentTime;
+    const dur = currentSong.duration;
+
+    // Only do the math if the browser has fully calculated the track's duration
+    if (!isNaN(dur) && isFinite(dur) && dur > 0) {
+      const pct = (curr / dur) * 100;
       document.querySelector(".circle").style.left = `${pct}%`;
       document.querySelector(".songtime").textContent =
-        `${toMMSS(currentSong.currentTime)} / ${toMMSS(currentSong.duration)}`;
+        `${toMMSS(curr)} / ${toMMSS(dur)}`;
+    } else {
+      // Fallback while the song is loading to prevent NaN:NaN
+      document.querySelector(".songtime").textContent =
+        `${toMMSS(curr)} / 00:00`;
     }
   });
 
-  // ── Volume ──
   document.querySelector(".range input").addEventListener("input", (e) => {
     currentSong.volume = parseInt(e.target.value) / 100;
   });
 
-  // ── Hamburger (mobile) ──
   document.querySelector(".hamburger").addEventListener("click", () => {
     document.querySelector(".left").style.left = "0";
   });
@@ -533,7 +554,7 @@ main();
   const loginPanel = document.getElementById("loginPanel");
   const signupPanel = document.getElementById("signupPanel");
   const successPanel = document.getElementById("successPanel");
-  if (!overlay) return; // guard if HTML doesn't have modal yet
+  if (!overlay) return;
 
   function showPanel(panel) {
     [loginPanel, signupPanel, successPanel].forEach((p) =>
@@ -608,7 +629,6 @@ main();
     badge.textContent = "👤 " + name;
   }
 
-  // Open modals
   document
     .getElementById("openLogin")
     .addEventListener("click", () => showPanel(loginPanel));
@@ -616,7 +636,6 @@ main();
     .getElementById("openSignup")
     .addEventListener("click", () => showPanel(signupPanel));
 
-  // Close
   document.getElementById("closeModal").addEventListener("click", closeModal);
   document
     .getElementById("closeModalSignup")
@@ -629,7 +648,6 @@ main();
     if (e.key === "Escape") closeModal();
   });
 
-  // Switch panels
   document.getElementById("goSignup").addEventListener("click", (e) => {
     e.preventDefault();
     showPanel(signupPanel);
@@ -639,7 +657,6 @@ main();
     showPanel(loginPanel);
   });
 
-  // Show/hide password
   document.querySelectorAll(".toggle-pw").forEach((btn) => {
     btn.addEventListener("click", () => {
       const inp = document.getElementById(btn.dataset.target);
@@ -648,7 +665,6 @@ main();
     });
   });
 
-  // Login
   document.getElementById("loginSubmit").addEventListener("click", () => {
     clearErrors();
     const email = document.getElementById("loginEmail").value.trim();
@@ -677,7 +693,6 @@ main();
     setLoggedIn(users[email].name);
   });
 
-  // Signup
   document.getElementById("signupSubmit").addEventListener("click", () => {
     clearErrors();
     const email = document.getElementById("signupEmail").value.trim();
@@ -718,7 +733,6 @@ main();
     setLoggedIn(name);
   });
 
-  // Enter key
   ["loginEmail", "loginPassword"].forEach((id) => {
     document.getElementById(id).addEventListener("keydown", (e) => {
       if (e.key === "Enter") document.getElementById("loginSubmit").click();
@@ -730,7 +744,6 @@ main();
     });
   });
 
-  // Auto-login on refresh
   const current = localStorage.getItem("sp_current");
   if (current) setLoggedIn(current);
 })();

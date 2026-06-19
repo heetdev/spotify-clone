@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Clone - Web Music Player</title>
 
-    <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
     <link rel="stylesheet" href="main.css">
     <link rel="stylesheet" href="universal-class.css">
@@ -15,7 +15,6 @@
 <body>
     <div class="container flex bg-black">
 
-        <!-- ── LEFT SIDEBAR ── -->
         <div class="left">
             <div class="close">
                 <img width="30" class="invert" src="close.svg" alt="Close">
@@ -43,7 +42,7 @@
                 </div>
                 <div class="footer">
                     <div><a href="https://www.spotify.com/in-en/legal/"><span>Legal</span></a></div>
-                    <div><a href="https://www.spotify.com/in-en/safetyandprivacy/"><span>Safety &amp; Privacy
+                    <div><a href="https://www.spotify.com/in-en/safetyandprivacy/"><span>Safety & Privacy
                                 Center</span></a></div>
                     <div><a href="https://www.spotify.com/in-en/legal/privacy-policy/"><span>Privacy Policy</span></a>
                     </div>
@@ -55,7 +54,6 @@
             </div>
         </div>
 
-        <!-- ── RIGHT MAIN ── -->
         <div class="right bg-grey rounded">
             <div class="header">
                 <div class="nav">
@@ -84,7 +82,6 @@
             <div class="spotifyPlaylist">
                 <h1 id="mainHeading">Spotify Playlist</h1>
 
-                <!-- SEARCH VIEW -->
                 <div id="searchView" style="display:none; padding:10px 15px;">
                     <div style="position:relative; margin-bottom:20px;">
                         <input id="searchInput" type="text" placeholder="What do you want to listen to?" style="width:100%;padding:13px 13px 13px 44px;border-radius:30px;
@@ -103,10 +100,8 @@
                     </p>
                 </div>
 
-                <!-- HOME VIEW — album cards rendered here by JS -->
                 <div id="homeView" class="cardContainer"></div>
 
-                <!-- PLAYLIST VIEW -->
                 <div id="playlistView" style="display:none; padding:20px;">
                     <div style="display:flex;gap:24px;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;">
                         <img id="pvCover" src="" alt="cover" style="width:180px;height:180px;object-fit:cover;border-radius:8px;
@@ -122,10 +117,14 @@
                             </button>
                         </div>
                     </div>
-                    <p style="color:#b3b3b3;font-size:13px;">← Songs are listed in Your Library on the left</p>
+                    <p id="pvHint" style="color:#b3b3b3;font-size:13px;">← Songs are listed in Your Library on the left
+                    </p>
+
+                    <div id="playlistViewSongs">
+                        <ul></ul>
+                    </div>
                 </div>
 
-                <!-- PLAYBAR -->
                 <div class="playbar">
                     <div class="seekbar">
                         <div class="circle"></div>
@@ -152,13 +151,11 @@
         </div>
     </div>
 
-    <!-- ── AUTH MODAL ── -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-box">
 
-            <!-- LOGIN -->
             <div class="modal-panel" id="loginPanel">
-                <button class="modal-close" id="closeModal">&#10005;</button>
+                <button class="modal-close" id="closeModal">✕</button>
                 <div class="modal-logo">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#1ed760">
                         <path
@@ -183,9 +180,8 @@
                 </p>
             </div>
 
-            <!-- SIGNUP -->
             <div class="modal-panel hidden" id="signupPanel">
-                <button class="modal-close" id="closeModalSignup">&#10005;</button>
+                <button class="modal-close" id="closeModalSignup">✕</button>
                 <div class="modal-logo">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#1ed760">
                         <path
@@ -215,7 +211,6 @@
                 </p>
             </div>
 
-            <!-- SUCCESS -->
             <div class="modal-panel hidden" id="successPanel">
                 <div class="modal-success-icon">✓</div>
                 <h2 class="modal-title" id="successTitle">Welcome back!</h2>

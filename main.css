@@ -174,7 +174,6 @@
   border-radius: 12px;
 }
 
-/* Dark gradient so text is readable over image */
 .card::after {
   content: "";
   position: absolute;
@@ -197,7 +196,6 @@
   );
 }
 
-/* Text sits on top of gradient */
 .card-text {
   position: absolute;
   bottom: 0;
@@ -229,7 +227,6 @@
   margin: 0;
 }
 
-/* Green play button */
 .card-play-btn {
   position: absolute;
   bottom: 16px;
@@ -255,7 +252,6 @@
   transform: scale(1) translateY(0);
 }
 
-/* Search results use same card grid */
 #searchResults {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -312,6 +308,48 @@
   height: 555px;
   overflow-y: auto;
   margin-bottom: 44px;
+}
+
+/* ── NEW VIEW STYLING: INLINE PLAYLIST TRACKS ── */
+#playlistViewSongs {
+  margin-top: 24px;
+}
+#playlistViewSongs ul li {
+  list-style: none;
+  display: flex;
+  gap: 15px;
+  cursor: pointer;
+  padding: 12px 16px;
+  border: 1px solid rgba(227, 218, 218, 0.08);
+  margin: 8px 0;
+  border-radius: 8px;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+#playlistViewSongs ul li:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(30, 215, 96, 0.3);
+}
+#playlistViewSongs .info {
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+}
+#playlistViewSongs .info div:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: white;
+}
+#playlistViewSongs .info div:last-child {
+  color: #a7a7a7;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 /* ── PLAYBAR ── */
@@ -586,8 +624,18 @@
   margin: 0 auto 20px;
 }
 
-/* ── RESPONSIVE ── */
+/* ── RESPONSIVE OVERRIDES ── */
 @media (max-width: 1250px) {
+  /* Hide the old confusing direction hint text on mobile */
+  #pvHint {
+    display: none !important;
+  }
+
+  /* Padding helps mobile users scroll cleanly above the tall fixed playbar layout */
+  #playlistViewSongs {
+    padding-bottom: 150px;
+  }
+
   .left {
     position: absolute;
     left: -120%;
