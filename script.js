@@ -75,6 +75,77 @@ const albums = [
   },
 ];
 
+// ─── SONG MANIFEST ────────────────────────
+// GitHub Pages can't list folder contents like a local dev server can,
+// so each album's mp3 filenames must be listed here by hand.
+// Just the filename, exactly as it sits inside its songs/<folder>/ directory.
+const songManifest = {
+  "songs/goat": [
+    "Jo Wada Kiya Woh Nibhana Padega.mp3",
+    "Nee Singam Dhan.mp3",
+    "Channa Mereya.mp3",
+    "Elevated.mp3",
+    "Sajna Ve Sajna.mp3",
+  ],
+  "songs/goat2": [
+    "Mf Gabhru - Karan Aujla.mp3",
+    "Admirin You - Karan Aujla.mp3",
+    "Mexico (Original) - Karan Aujla.mp3",
+    "White Brown Black - Avvy Sra.mp3",
+    "Courtside (Original) - Karan Aujla.mp3",
+    "Tauba Tauba - Karan Aujla.mp3",
+  ],
+  "songs/weeknd": [
+    "The Weeknd - After Hours (Audio).mp3",
+    "Reminder_-_The_Weeknd_(mp3.pm).mp3",
+    "Die For You (Justin Biber AI cover).mp3",
+    "The_Weeknd - Jealous Guy.mp3",
+    "One Of The Girls - The Weeknd, JENNIE, and Lily-Rose Depp.mp3",
+    "The_Weeknd_-_Blinding_Lights_(mp3.pm).mp3",
+  ],
+  "songs/tecca": [
+    "Lil_Tecca_-Ransom Feat. Juice WRLD.mp3",
+    "Lil-Tecca-500lbs-.mp3",
+    "Lil-Tecca-Dark-Thoughts.mp3",
+    "Lil-Tecca-Favorite-Lie.mp3",
+    "Lil-Tecca-On-Your-Own.mp3",
+    "Lil-Tecca-OWA-OWA.mp3",
+  ],
+  "songs/arjit": [
+    "Aabaad Barbaad.mp3",
+    "Aavan Jaavan War .mp3",
+    "Ae Dil Hai Mushkil Title Track Pritam.mp3",
+    "Agar Tum Saath Ho Tamasha.mp3",
+    "Naina-Arijit.mp3",
+    "Samjhawan Humpty Sharma Ki Dulhania.mp3",
+  ],
+  "songs/retro": [
+    "K_Naan-Wavin Flag.mp3",
+    "Shakira-Hips dont lie.mp3",
+    "Bheegi Bheegi Raaton Mein Ajanabee.mp3",
+    "Chunnari Chunnari Biwi No. 1.mp3",
+    "Maine Puchha Chand Se.mp3",
+    "Woh Ladki Hai Kahan Dil Chahta Hai.mp3",
+    "Yeh Sham Mastani.mp3",
+  ],
+  "songs/peace": [
+    "AURORA - Runaway.mp3",
+    "Bolna Kapoor And Sons.mp3",
+    "Jo Tum Mere Ho Anuv Jain.mp3",
+    "Kyon Barfi.mp3",
+    "Tere Bina - Guru.mp3",
+    "Tum Se Hi - Jab We Met.mp3",
+  ],
+  "songs/aur": [
+    "Again AUR.mp3",
+    "Me - AUR.mp3",
+    "Shikayat - AUR.mp3",
+    "Tere Bina AUR.mp3",
+    "Tu Hai Kahan - AUR.mp3",
+    "YOU - AUR.mp3",
+  ],
+};
+
 // ─── SONG-SPECIFIC ARTISTS ────────────────
 const songArtists = {
   "Channa Mereya (PenduJatt.Com.Se)": "Arijit Singh",
@@ -135,14 +206,9 @@ async function getSongs(folder) {
   const albumMatch = albums.find((a) => a.folder === folder);
   currentArtist = albumMatch ? albumMatch.artist : "Artist";
 
-  const res = await fetch(`http://127.0.0.1:5500/${folder}/`);
-  const html = await res.text();
-  const div = document.createElement("div");
-  div.innerHTML = html;
-
-  songs = Array.from(div.getElementsByTagName("a"))
-    .filter((a) => a.href.endsWith(".mp3"))
-    .map((a) => a.href.split(`/${folder}/`)[1]);
+  // Pull filenames from the hardcoded manifest instead of fetching a
+  // directory listing (GitHub Pages doesn't generate one).
+  songs = songManifest[folder] || [];
 
   renderLibrary();
 }
@@ -150,6 +216,15 @@ async function getSongs(folder) {
 function renderLibrary() {
   const ul = document.querySelector(".songList ul");
   ul.innerHTML = "";
+
+  if (songs.length === 0) {
+    const li = document.createElement("li");
+    li.style.cssText = "opacity:0.6; cursor:default; justify-content:center;";
+    li.innerHTML = `<div class="info"><div>No songs added yet for this album</div></div>`;
+    ul.appendChild(li);
+    return;
+  }
+
   songs.forEach((song, i) => {
     const artist = getArtistForSong(song);
     const li = document.createElement("li");
@@ -170,7 +245,7 @@ function renderLibrary() {
 
 // ─── PLAY MUSIC ───────────────────────────
 function playMusic(track, pause = false) {
-  currentSong.src = `/${currFolder}/` + track;
+  currentSong.src = `${currFolder}/` + track;
   if (!pause) {
     currentSong.play();
     document.getElementById("play").src = "pause.svg";
@@ -350,7 +425,7 @@ async function main() {
     await getSongs("songs/goat");
     if (songs.length > 0) playMusic(songs[0], true);
   } catch (e) {
-    console.warn("Live Server not running or no songs yet:", e);
+    console.warn("Could not load default album songs:", e);
   }
 
   // ── Nav arrows ──
